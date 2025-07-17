@@ -5,7 +5,6 @@ void dmpDataReady() {
 void buttonInt() {
   mode += 1;
   mode = mode % 4;
-  Serial.println(mode);
 
   LedMode();
 }
@@ -14,28 +13,28 @@ void buttonInt() {
 void LedMode() {  
   switch (mode) {
     case 0:
-    // Mode 0 : JAUNE
+    // Mode Balancing : JAUNE
     digitalWrite(RED_PIN, LOW);
     digitalWrite(GREEN_PIN, LOW);
     //digitalWrite(BLUE_PIN, HIGH);
     break;
 
     case 1:
-    // Mode 1 : VERT
+    // Mode RemoteControl : VERT
     digitalWrite(RED_PIN, HIGH);
     digitalWrite(GREEN_PIN, LOW);
     //digitalWrite(BLUE_PIN, HIGH);
     break;
 
     case 2:
-    // Mode 2 : ROUGE
+    // Mode LineTracking : ROUGE
     digitalWrite(RED_PIN, LOW);
     digitalWrite(GREEN_PIN, HIGH);
     //digitalWrite(BLUE_PIN, HIGH);
     break;
 
     case 3:
-    // Mode 3 : ETEINT
+    // Mode Off : ETEINT
     digitalWrite(RED_PIN, HIGH);
     digitalWrite(GREEN_PIN, HIGH);
     //digitalWrite(BLUE_PIN, LOW);
@@ -44,8 +43,7 @@ void LedMode() {
 }
 
 void Backward() { //Code to rotate the wheel Backward
-  if ( mode == 0) vitesse = output;
-  if (mode == 1 || mode == 2) vitesse = controlVitesse;
+  vitesse = output;
 
   analogWrite(LEFT_MOTOR_PIN1, vitesse);
   analogWrite(LEFT_MOTOR_PIN2, 0);
@@ -55,8 +53,7 @@ void Backward() { //Code to rotate the wheel Backward
 }
 
 void Forward() { //Code to rotate the wheel Forward
-  if ( mode == 0) vitesse = output*-1;
-  if (mode == 1 || mode == 2) vitesse = controlVitesse;
+  vitesse = output*-1;
 
   analogWrite(LEFT_MOTOR_PIN1, 0);
   analogWrite(LEFT_MOTOR_PIN2, vitesse);
@@ -85,8 +82,7 @@ void ControlBackward() {
 }
 
 void Right() {
-  if ( mode == 0) vitesse = output;
-  if (mode == 1 || mode == 2) vitesse = controlVitesse;
+  vitesse = output;
 
   analogWrite(LEFT_MOTOR_PIN1, 0);
   analogWrite(LEFT_MOTOR_PIN2, vitesse);
@@ -96,8 +92,7 @@ void Right() {
 }
 
 void Left() {
-  if ( mode == 0) vitesse = output;
-  if (mode == 1 || mode == 2) vitesse = controlVitesse;
+  vitesse = output;
 
   analogWrite(LEFT_MOTOR_PIN1, 0);
   analogWrite(LEFT_MOTOR_PIN2, 0);

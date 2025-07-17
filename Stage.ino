@@ -105,10 +105,6 @@ void remoteControl() {
 
         if ( ( (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) && (millis() - lastRemote > 200) ) || !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
 
-            if ( mode == 0) {
-                if ( cmd == 0x18 ) ControlForward();
-                if ( cmd == 0x52 ) ControlBackward();
-            }
 
             if ( mode == 1 || mode == 2) {
                 if ( mode == 1) {
@@ -149,17 +145,9 @@ void balancing() {
         pid.Compute();
         
         Serial.print(input); Serial.print(" =>"); Serial.println(output);
-        if (input > 135 && input < 205) {
+        if (input > EQUILIBRE - 40 && input < EQUILIBRE + 40) {
 
-            if ( input > setpoint - 5 ) { // Si en equilibre on effectue les action de mode
-
-                if ( mode == 0) { // Balancing normal
-                    if ( output > 0 ) {
-                        Backward();
-                    } else if ( output < 0 ) {
-                        Forward();
-                    }
-                }
+            if ( input > EQUILIBRE && input < EQUILIBRE + 5 && output < 0 && mode != 0) { // Si en equilibre on effectue les action de mode
 
                 if ( mode == 1 ) { // control telecommmander
                     directionRemoteControl();
@@ -170,13 +158,7 @@ void balancing() {
                 }
 
             } else {
-
-                if (output>0) {
-                    Backward();
-                } else if (output<0) {
-                    Forward();
-                }
-
+                balancingDrive();
             }
 
         } else {
@@ -208,18 +190,21 @@ void balancing() {
             mpu.dmpGetQuaternion(&q, fifoBuffer); //get value for q
             mpu.dmpGetGravity(&gravity, &q); //get value for gravity
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity); //get value for ypr
-            input = ypr[1] * 180/M_PI + 180;
+            input = degrees(ypr[1]) + 180;
         }
     }
 }
 
 
 void directionRemoteControl() {
-    if (millis() - startForward < 200) Forward();
-    else if (millis() - startBackward < 200) Backward();
-    else if (millis() - startLeft < 200) Left();
-    else if (millis() - startRight < 200) Right();
-    else Stop();
+    if (millis() - startForward < 200) setpoint = EQUILIBRE + 2;
+    else if (millis() - startBackward < 200) setpoint = EQUILIBRE - 2;
+    else {
+        setpoint = EQUILIBRE;
+        if (millis() - startLeft < 200) Left();
+        else if (millis() - startRight < 200) Right();
+        else balancingDrive();
+    }
 }
 
 
@@ -228,11 +213,12 @@ void lineTracking() {
     leftValue = digitalRead(LEFT_SENSOR_PIN);
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
-    if ( millis() - startTurn > 15) {
+    if ( leftValue == LOW && rightValue == LOW )
+        setpoint = EQUILIBRE + 0.5;
+    else {
+        setpoint = EQUILIBRE;
 
-        if ( leftValue == HIGH && rightValue == HIGH ) { 
-            Stop();
-        } else if ( leftValue == HIGH) { 
+        if ( leftValue == HIGH) { 
             Serial.println("Left Line detected");
             startTurn = millis();
             Left();
@@ -241,7 +227,17 @@ void lineTracking() {
             startTurn = millis();
             Right();
         } else {
-            Forward();
+            balancingDrive();
         }
     }
+}
+
+void balancingDrive() {
+
+    if ( output > 0) {
+        Backward();
+    } else if ( output < 0) {
+        Forward();
+    }
+
 }
