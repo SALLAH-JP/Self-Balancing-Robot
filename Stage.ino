@@ -113,9 +113,6 @@ void remoteControl() {
                     if ( cmd == 0x5A ) startRight = millis();
                     if ( cmd == 0x52 ) startBackward = millis();
                 }
-
-                if ( cmd == 0x09 ) controlVitesse = constrain(controlVitesse + 10, 50, 255);
-                if ( cmd == 0x15 ) controlVitesse = constrain(controlVitesse - 10, 50, 255);
             }
 
             if ( cmd == 0x45 ) mode = 3;
@@ -147,19 +144,13 @@ void balancing() {
         Serial.print(input); Serial.print(" =>"); Serial.println(output);
         if (input > EQUILIBRE - 40 && input < EQUILIBRE + 40) {
 
-            if ( input > EQUILIBRE && input < EQUILIBRE + 5 && output < 0 && mode != 0) { // Si en equilibre on effectue les action de mode
-
-                if ( mode == 1 ) { // control telecommmander
-                    directionRemoteControl();
-                }
-
-                if ( mode == 2 ) { // Suivit de ligne
-                    lineTracking();
-                }
-
-            } else {
-                balancingDrive();
+            if ( mode == 1 ) {
+                directionRemoteControl();
+            } else if ( mode == 2 ) {
+                lineTracking();
             }
+
+            driveMotors();
 
         } else {
             Stop();
@@ -197,47 +188,35 @@ void balancing() {
 
 
 void directionRemoteControl() {
-    if (millis() - startForward < 200) setpoint = EQUILIBRE + 2;
-    else if (millis() - startBackward < 200) setpoint = EQUILIBRE - 2;
-    else {
-        setpoint = EQUILIBRE;
-        if (millis() - startLeft < 200) Left();
-        else if (millis() - startRight < 200) Right();
-        else balancingDrive();
-    }
+    delta = 0.0;
+
+    if (millis() - startForward < 100) setpoint = EQUILIBRE + 1;
+    else if (millis() - startBackward < 100) setpoint = EQUILIBRE - 1;
+    else setpoint = EQUILIBRE;
+
+    if (millis() - startLeft  < 100) delta = -1.0;
+    else if (millis() - startRight < 100) delta = +1.0;
+
+
 }
 
 
 void lineTracking() {
+    delta = 0.0;
 
     leftValue = digitalRead(LEFT_SENSOR_PIN);
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
-    if ( leftValue == LOW && rightValue == LOW )
+    if ( leftValue == LOW && rightValue == LOW ) {
         setpoint = EQUILIBRE + 0.5;
-    else {
-        setpoint = EQUILIBRE;
-
+    } else {
+        setpoint = EQUILIBRE - 2;
         if ( leftValue == HIGH) { 
             Serial.println("Left Line detected");
-            startTurn = millis();
-            Left();
+            delta = -1.0;
         } else if (rightValue == HIGH ) {
             Serial.println("Right Line detected");
-            startTurn = millis();
-            Right();
-        } else {
-            balancingDrive();
+            delta = +1.0;
         }
     }
-}
-
-void balancingDrive() {
-
-    if ( output > 0) {
-        Backward();
-    } else if ( output < 0) {
-        Forward();
-    }
-
 }

@@ -20,7 +20,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 
 /*********Tune these 4 values for your BOT*********/
-#define EQUILIBRE  174.6
+#define EQUILIBRE  174.55
 double setpoint = EQUILIBRE; //177.6 set the value when the bot is perpendicular to ground using serial monitor. 
 //Read the project documentation on circuitdigest.com to learn how to set these values
 double Kp = 14; //15 Set this first
@@ -33,6 +33,10 @@ const int RIGHT_MOTOR_PIN1 = 5;
 const int RIGHT_MOTOR_PIN2 = 6;
 const int LEFT_MOTOR_PIN1 = 9;
 const int LEFT_MOTOR_PIN2 = 10;
+float delta = 0.0;
+float Kmix = 0.0;
+float pwmL;
+float pwmR;
 
 
 // MPU Interrupt
@@ -44,13 +48,10 @@ volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin h
 // Remote Control
 const int IR_RECEIVE_PIN = 4;
 unsigned long lastRemote = 0;
-unsigned long start = 0;
 unsigned long startForward = 0;
 unsigned long startBackward = 0;
 unsigned long startLeft = 0;
 unsigned long startRight = 0;
-int controlVitesse = 100;
-int vitesse = 100;
 
 
 // Mode Button
@@ -70,7 +71,6 @@ const int RIGHT_SENSOR_PIN = 8;
 //const int SENSOR3_PIN = 13;
 int leftValue;
 int rightValue;
-unsigned long startTurn = 0;
 
 
 uint32_t cmd = 0;
