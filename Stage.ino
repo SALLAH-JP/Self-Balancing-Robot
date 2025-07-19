@@ -19,10 +19,10 @@ void setup() {
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(-479);
-    mpu.setYGyroOffset(84);
-    mpu.setZGyroOffset(15);
-    mpu.setZAccelOffset(1638); 
+    mpu.setXGyroOffset(-76);
+    mpu.setYGyroOffset(-54);
+    mpu.setZGyroOffset(2);
+    mpu.setZAccelOffset(1384); 
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -140,6 +140,8 @@ void balancing() {
     if (!mpuInterrupt && fifoCount < packetSize) {
     
         pid.Compute();
+        setpoint = EQUILIBRE;
+        delta = 0.0;
         
         Serial.print(input); Serial.print(" =>"); Serial.println(output);
         if (input > EQUILIBRE - 40 && input < EQUILIBRE + 40) {
@@ -188,10 +190,9 @@ void balancing() {
 
 
 void directionRemoteControl() {
-    delta = 0.0;
 
-    if (millis() - startForward < 100) setpoint = EQUILIBRE + 1;
-    else if (millis() - startBackward < 100) setpoint = EQUILIBRE - 1;
+    if (millis() - startForward < 100) setpoint = EQUILIBRE + 5;
+    else if (millis() - startBackward < 100) setpoint = EQUILIBRE - 5;
     else setpoint = EQUILIBRE;
 
     if (millis() - startLeft  < 100) delta = -1.0;
@@ -202,21 +203,26 @@ void directionRemoteControl() {
 
 
 void lineTracking() {
-    delta = 0.0;
 
     leftValue = digitalRead(LEFT_SENSOR_PIN);
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
     if ( leftValue == LOW && rightValue == LOW ) {
-        setpoint = EQUILIBRE + 0.5;
-    } else {
-        setpoint = EQUILIBRE - 2;
-        if ( leftValue == HIGH) { 
-            Serial.println("Left Line detected");
-            delta = -1.0;
-        } else if (rightValue == HIGH ) {
-            Serial.println("Right Line detected");
-            delta = +1.0;
-        }
+        setpoint = EQUILIBRE + 1.50;
     }
+    
+
+    if (millis() - lastStop > 1000) lastStop = millis();
+    if (millis() - lastStop < 500) setpoint = EQUILIBRE - 1.50;
+
+    if ( leftValue == HIGH) { 
+        Serial.println("Left Line detected");
+        delta = -1.0;
+        setpoint = EQUILIBRE;
+    } else if (rightValue == HIGH ) {
+        Serial.println("Right Line detected");
+        delta = +1.0;
+        setpoint = EQUILIBRE;
+    }
+
 }

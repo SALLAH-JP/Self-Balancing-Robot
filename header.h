@@ -20,12 +20,12 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 
 /*********Tune these 4 values for your BOT*********/
-#define EQUILIBRE  174.55
+#define EQUILIBRE  176.7
 double setpoint = EQUILIBRE; //177.6 set the value when the bot is perpendicular to ground using serial monitor. 
 //Read the project documentation on circuitdigest.com to learn how to set these values
-double Kp = 14; //15 Set this first
+double Kp = 13; //15 Set this first
 double Kd = 0.8; //0.8 Set this secound
-double Ki = 275; //325 Finally set this 
+double Ki = 180; //325 Finally set this 
 /******End of values setting*********/
 
 //Motor Pin
@@ -71,6 +71,7 @@ const int RIGHT_SENSOR_PIN = 8;
 //const int SENSOR3_PIN = 13;
 int leftValue;
 int rightValue;
+unsigned long lastStop = 0;
 
 
 uint32_t cmd = 0;

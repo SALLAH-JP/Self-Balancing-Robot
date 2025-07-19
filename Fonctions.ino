@@ -4,7 +4,7 @@ void dmpDataReady() {
 
 void buttonInt() {
   mode += 1;
-  mode = mode % 4;
+  mode = mode % 3;
 
   LedMode();
 }
@@ -20,7 +20,7 @@ void LedMode() {
       break;
 
     case 1:
-      Kmix = 150;
+      Kmix = 90;
       // Mode RemoteControl : VERT
       digitalWrite(RED_PIN, HIGH);
       digitalWrite(GREEN_PIN, LOW);
@@ -28,7 +28,7 @@ void LedMode() {
       break;
 
     case 2:
-      Kmix = 25;
+      Kmix = 50;
       // Mode LineTracking : ROUGE
       digitalWrite(RED_PIN, LOW);
       digitalWrite(GREEN_PIN, HIGH);
