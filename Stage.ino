@@ -15,6 +15,18 @@ void setup() {
     }
     delay(1000);
 
+    // PID Angle
+    pid_angle.SetMode(AUTOMATIC);
+    pid_angle.SetSampleTime(5); // 5ms = 200Hz
+    pid_angle.SetOutputLimits(-200, 200);
+    setpoint_angle = EQUILIBRE; // Votre angle d'équilibre
+
+    // PID Vitesse
+    pid_vitesse.SetMode(AUTOMATIC);
+    pid_vitesse.SetSampleTime(20); // 20ms = 50Hz
+    pid_vitesse.SetOutputLimits(-5, 5); // Limite l'angle cible
+    setpoint_vitesse = 0; // Vitesse initiale nulle
+    
 
     // Button Seput and interrupt with the module PinChangeInterrupt
     pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -61,28 +73,37 @@ void loop() {
 
 
 void balancing() {
+    dt = (millis() - last_time) / 1000.0f;
+    last_time = millis();
 
     if ( hasDataIMU() ) { // when IMU has received the package
         // read pitch from the IMU
-        input = getPitchIMU();
-        pid.Compute();
-        setpoint = EQUILIBRE;
-        delta = 0.0;
+
+        input_angle = getPitchIMU();
+        input_vitesse = estimateVelocity(input_angle, dt);
+        pid_vitesse.Compute();
+
+        setpoint_angle = EQUILIBRE + output_vitesse;
         
-        Serial.print(input); Serial.print(" =>"); Serial.println(output);
-        if (input > EQUILIBRE - 40 && input < EQUILIBRE + 40) {
-
-            if ( mode == 1 ) {
-                directionRemoteControl();
-            } else if ( mode == 2 ) {
-                lineTracking();
-            }
-
-            driveMotors();
-
-        } else {
+        pid_angle.Compute();
+        
+        Serial.print(input_angle); Serial.print(" =>"); Serial.println(output_angle);
+        if (abs(input_angle - EQUILIBRE) > 40) {
             Stop();
+            return;
         }
+        
+        if (mode == 1) {
+            // Remote control - géré dans remoteControl()
+        } else if (mode == 2) {
+            lineTracking();
+        } else {
+            steering = 0; // Mode 0: pas de direction
+            setpoint_vitesse = 0;
+        }
+
+        driveMotors(output_angle, steering);
+
     }
 }
 
@@ -94,25 +115,23 @@ void remoteControl() {
         cmd = IrReceiver.decodedIRData.command;
         Serial.print(F("Nouvelle cmd = 0x")); Serial.println(cmd, HEX);
 
+        steering = 0;
+        setpoint_vitesse = 0;
+
         if ( ( (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) && (millis() - lastRemote > 200) ) || !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
 
-
-            if ( mode == 1 || mode == 2) {
-                if ( mode == 1) {
-                    if ( cmd == 0x18 ) setpoint = EQUILIBRE + 5;
-                    if ( cmd == 0x08 ) delta = -1.0;
-                    if ( cmd == 0x5A ) delta = +1.0;
-                    if ( cmd == 0x52 ) setpoint = EQUILIBRE - 5;
-                }
+            if ( mode == 1) {
+                if ( cmd == 0x18 ) setpoint_vitesse = 1.0;
+                if ( cmd == 0x08 ) steering = -150;
+                if ( cmd == 0x5A ) steering = +150;
+                if ( cmd == 0x52 ) setpoint_vitesse = -1.0;
             }
 
             if ( cmd == 0x45 ) mode = 3;
-            if ( cmd == 0x44 ) mode = 1;
-            if ( cmd == 0x19 ) mode = 2;
-            if ( cmd == 0x07 ) mode = 0;
-            if ( cmd == 0x46 ) buttonInt();
-
-            if ( cmd == 0x0 )  Serial.println(F("Touche inconnue"));
+            else if ( cmd == 0x44 ) mode = 1;
+            else if ( cmd == 0x19 ) mode = 2;
+            else if ( cmd == 0x07 ) mode = 0;
+            else if ( cmd == 0x46 ) buttonInt();
 
             LedMode();
             lastRemote = millis();
@@ -123,29 +142,16 @@ void remoteControl() {
 }
 
 
-void directionRemoteControl() {
-
-}
-
-
 void lineTracking() {
 
     leftValue = digitalRead(LEFT_SENSOR_PIN);
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
-    if ( leftValue == LOW && rightValue == LOW ) {
-        setpoint = EQUILIBRE + 0.50;
-    }
+    steering = 0;
+    setpoint_vitesse = 0.5;
 
 
-    if ( leftValue == HIGH) { 
-        Serial.println("Left Line detected");
-        delta = -1.0;
-        setpoint = EQUILIBRE;
-    } else if (rightValue == HIGH ) {
-        Serial.println("Right Line detected");
-        delta = +1.0;
-        setpoint = EQUILIBRE;
-    }
+    if ( leftValue == HIGH) steering = -30;
+    else if (rightValue == HIGH ) steering = +30;
 
 }

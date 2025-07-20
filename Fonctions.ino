@@ -1,7 +1,3 @@
-void dmpDataReady() {
-  mpuInterrupt = true;
-}
-
 void buttonInt() {
   mode += 1;
   mode = mode % 3;
@@ -20,7 +16,6 @@ void LedMode() {
       break;
 
     case 1:
-      Kmix = 90;
       // Mode RemoteControl : VERT
       digitalWrite(RED_PIN, HIGH);
       digitalWrite(GREEN_PIN, LOW);
@@ -28,7 +23,6 @@ void LedMode() {
       break;
 
     case 2:
-      Kmix = 50;
       // Mode LineTracking : ROUGE
       digitalWrite(RED_PIN, LOW);
       digitalWrite(GREEN_PIN, HIGH);
@@ -44,10 +38,13 @@ void LedMode() {
   }
 }
 
-void driveMotors() {
+void driveMotors(float torque, float turn) {
 
-  pwmL = output - Kmix * delta;
-  pwmR = output + Kmix * delta;
+  pwmL = torque - turn;
+  pwmR = torque + turn;
+
+  pwmL = constrain(pwmL, -255, 255);
+  pwmR = constrain(pwmR, -255, 255);
 
   // Gauche
   if (pwmL >= 0) {
@@ -75,16 +72,17 @@ void Stop() { //Code to stop both the wheels
 }
 
 float estimateVelocity(float angle, float dt) {
-    static float last_angle = EQUILIBRE;
-    static float estimated_velocity = 0;
+
+  if(dt < 0.001) dt = 0.01;
     
-    // Calcul de la dérivée
-    float angular_velocity = (angle - last_angle) / dt;
-    last_angle = angle;
-    
-    // Filtre passe-bas pour lisser
-    const float alpha = 0.7;
-    estimated_velocity = alpha * estimated_velocity + (1 - alpha) * angular_velocity;
-    
-    return estimated_velocity;
+  // Calcul de la dérivée
+  float angular_velocity = (angle - last_angle) / dt;
+
+  // Filtre passe-bas pour lisser
+  const float alpha = 0.7;
+  estimated_velocity = alpha * estimated_velocity + (1 - alpha) * angular_velocity;
+
+  last_angle = angle;
+
+  return estimated_velocity;
 }
