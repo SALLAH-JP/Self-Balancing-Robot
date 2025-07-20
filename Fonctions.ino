@@ -73,3 +73,18 @@ void Stop() { //Code to stop both the wheels
   analogWrite(RIGHT_MOTOR_PIN1, 0);
   analogWrite(RIGHT_MOTOR_PIN2, 0);
 }
+
+float estimateVelocity(float angle, float dt) {
+    static float last_angle = EQUILIBRE;
+    static float estimated_velocity = 0;
+    
+    // Calcul de la dérivée
+    float angular_velocity = (angle - last_angle) / dt;
+    last_angle = angle;
+    
+    // Filtre passe-bas pour lisser
+    const float alpha = 0.7;
+    estimated_velocity = alpha * estimated_velocity + (1 - alpha) * angular_velocity;
+    
+    return estimated_velocity;
+}
