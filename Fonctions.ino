@@ -63,26 +63,3 @@ void driveMotors(float torque, float turn) {
     analogWrite(RIGHT_MOTOR_PIN2, (int)(-pwmR));
   }
 }
-
-void Stop() { //Code to stop both the wheels
-  analogWrite(LEFT_MOTOR_PIN1, 0);
-  analogWrite(LEFT_MOTOR_PIN2, 0);
-  analogWrite(RIGHT_MOTOR_PIN1, 0);
-  analogWrite(RIGHT_MOTOR_PIN2, 0);
-}
-
-float estimateVelocity(float angle, float dt) {
-
-  if(dt < 0.001) dt = 0.01;
-    
-  // Calcul de la dérivée
-  float angular_velocity = (angle - last_angle) / dt;
-
-  // Filtre passe-bas pour lisser
-  const float alpha = 0.7;
-  estimated_velocity = alpha * estimated_velocity + (1 - alpha) * angular_velocity;
-
-  last_angle = angle;
-
-  return estimated_velocity;
-}

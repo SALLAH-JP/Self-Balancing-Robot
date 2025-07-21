@@ -3,15 +3,15 @@
 
 
 /*********Tune these 4 values for your BOT*********/
-#define EQUILIBRE  176.7
+#define EQUILIBRE  0.5
 
-double Kp_angle = 13;
-double Ki_angle = 180;
-double Kd_angle = 0.8;
+double Kp_angle = 13.2;
+double Ki_angle = 182.5;
+double Kd_angle = 0.628;
 
-double Kp_vitesse = 0.05;
-double Ki_vitesse = 0.001;
-double Kd_vitesse = 0.0;
+double Kp_vitesse = 0.024;
+double Ki_vitesse = 2.4;
+double Kd_vitesse = 0;
 
 // PID Angle (interne)
 double input_angle, output_angle, setpoint_angle;
@@ -55,7 +55,5 @@ int leftValue;
 int rightValue;
 
 
-float last_angle = EQUILIBRE;
-float estimated_velocity = 0;
-unsigned long last_time = 0;
+unsigned long lastTime = micros();
 float dt = 0;

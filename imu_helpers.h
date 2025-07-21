@@ -1,9 +1,5 @@
 #include "Arduino.h"
 
-#define _PI_2 1.57079632679 
-#define _sign(a) ( ( (a) < 0 )  ?  -1   : ( (a) > 0 ) )
-
-
 // IMU funcitons declarations
 /**
  * Function that checks if the IMU has received new data
@@ -25,3 +21,5 @@ int initIMU();
  * Function reading the pitch value from the IMU
  */
 float getPitchIMU();
+
+float getVelocityIMU(float dt);

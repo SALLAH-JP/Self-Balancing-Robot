@@ -16,16 +16,14 @@ void setup() {
     delay(1000);
 
     // PID Angle
+    setpoint_angle = EQUILIBRE;
     pid_angle.SetMode(AUTOMATIC);
-    pid_angle.SetSampleTime(5); // 5ms = 200Hz
     pid_angle.SetOutputLimits(-200, 200);
-    setpoint_angle = EQUILIBRE; // Votre angle d'équilibre
 
     // PID Vitesse
+    setpoint_vitesse = 0;
     pid_vitesse.SetMode(AUTOMATIC);
-    pid_vitesse.SetSampleTime(20); // 20ms = 50Hz
-    pid_vitesse.SetOutputLimits(-5, 5); // Limite l'angle cible
-    setpoint_vitesse = 0; // Vitesse initiale nulle
+    pid_vitesse.SetOutputLimits(-3, 3); // Limite l'angle cible
     
 
     // Button Seput and interrupt with the module PinChangeInterrupt
@@ -63,7 +61,7 @@ void loop() {
 
     
     if ( mode == 3 ) {
-        Stop();
+        driveMotors(0, 0);
     } else {
         balancing();
     }
@@ -73,23 +71,28 @@ void loop() {
 
 
 void balancing() {
-    dt = (millis() - last_time) / 1000.0f;
-    last_time = millis();
+    unsigned long now = micros();
+    float dt = (now - lastTime) * 1e-6f;
+    lastTime = now;
 
     if ( hasDataIMU() ) { // when IMU has received the package
         // read pitch from the IMU
 
         input_angle = getPitchIMU();
-        input_vitesse = estimateVelocity(input_angle, dt);
+        input_vitesse = getVelocityIMU(dt);
         pid_vitesse.Compute();
 
         setpoint_angle = EQUILIBRE + output_vitesse;
         
         pid_angle.Compute();
+
+        steering = 0; // Mode 0: pas de direction
+        setpoint_vitesse = 0;
+        setpoint_angle = EQUILIBRE;
         
-        Serial.print(input_angle); Serial.print(" =>"); Serial.println(output_angle);
+        //Serial.print(input_vitesse); Serial.print(" =>"); Serial.println(output_vitesse);
         if (abs(input_angle - EQUILIBRE) > 40) {
-            Stop();
+            driveMotors(0, 0);
             return;
         }
         
@@ -97,9 +100,6 @@ void balancing() {
             // Remote control - géré dans remoteControl()
         } else if (mode == 2) {
             lineTracking();
-        } else {
-            steering = 0; // Mode 0: pas de direction
-            setpoint_vitesse = 0;
         }
 
         driveMotors(output_angle, steering);
@@ -114,9 +114,6 @@ void remoteControl() {
 
         cmd = IrReceiver.decodedIRData.command;
         Serial.print(F("Nouvelle cmd = 0x")); Serial.println(cmd, HEX);
-
-        steering = 0;
-        setpoint_vitesse = 0;
 
         if ( ( (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) && (millis() - lastRemote > 200) ) || !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
 
@@ -148,10 +145,11 @@ void lineTracking() {
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
     steering = 0;
-    setpoint_vitesse = 0.5;
+    setpoint_angle = EQUILIBRE + 0.25;
 
 
-    if ( leftValue == HIGH) steering = -30;
-    else if (rightValue == HIGH ) steering = +30;
+    if ( leftValue == HIGH) { steering = -100; setpoint_angle = EQUILIBRE - 1;}
+    else if (rightValue == HIGH ) { steering = +100; setpoint_angle = EQUILIBRE - 1;}
 
 }
+
