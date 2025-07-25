@@ -1,5 +1,4 @@
 #include "header.h"
-#include "imu_helpers.h"
 
 void setup() {
     Serial.begin(115200);
@@ -8,22 +7,13 @@ void setup() {
     // IR Receiver Setup and interrupt
     IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
 
-    delay(1000);
-    if ( !initIMU() ) {
-        Serial.println(F("IMU connection problem... Disabling!"));
-        return;
-    }
-    delay(1000);
+    initIMU();
 
     // PID Angle
     setpoint_angle = EQUILIBRE;
     pid_angle.SetMode(AUTOMATIC);
+    pid_angle.SetSampleTime(10);
     pid_angle.SetOutputLimits(-200, 200);
-
-    // PID Vitesse
-    setpoint_vitesse = 0;
-    pid_vitesse.SetMode(AUTOMATIC);
-    pid_vitesse.SetOutputLimits(-3, 3); // Limite l'angle cible
     
 
     // Button Seput and interrupt with the module PinChangeInterrupt
@@ -61,7 +51,7 @@ void loop() {
 
     
     if ( mode == 3 ) {
-        driveMotors(0, 0);
+        driveMotors(0, 0, 0);
     } else {
         balancing();
     }
@@ -71,39 +61,34 @@ void loop() {
 
 
 void balancing() {
-    unsigned long now = micros();
-    float dt = (now - lastTime) * 1e-6f;
-    lastTime = now;
 
-    if ( hasDataIMU() ) { // when IMU has received the package
-        // read pitch from the IMU
+    if (!dmpReady) return;
 
-        input_angle = getPitchIMU();
-        input_vitesse = getVelocityIMU(dt);
-        pid_vitesse.Compute();
+    if ( hasDataIMU() ) {
 
-        setpoint_angle = EQUILIBRE + output_vitesse;
-        
         pid_angle.Compute();
 
-        steering = 0; // Mode 0: pas de direction
-        setpoint_vitesse = 0;
-        setpoint_angle = EQUILIBRE;
-        
-        //Serial.print(input_vitesse); Serial.print(" =>"); Serial.println(output_vitesse);
+        steering = 0;
+        vitesse = 1;
+                
+        Serial.print(input_angle); Serial.print(" =>"); Serial.println(output_angle);
         if (abs(input_angle - EQUILIBRE) > 40) {
-            driveMotors(0, 0);
+            driveMotors(0, 0, 0);
             return;
         }
         
-        if (mode == 1) {
-            // Remote control - géré dans remoteControl()
-        } else if (mode == 2) {
-            lineTracking();
+        if (mode == 2) lineTracking();
+        else {
+            setpoint_angle = EQUILIBRE;
+            if (mode == 1) directionRemoteControl();
         }
 
-        driveMotors(output_angle, steering);
 
+
+        driveMotors(output_angle, vitesse, steering);
+
+    } else {
+        input_angle = getPitchIMU();
     }
 }
 
@@ -117,11 +102,16 @@ void remoteControl() {
 
         if ( ( (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) && (millis() - lastRemote > 200) ) || !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
 
-            if ( mode == 1) {
-                if ( cmd == 0x18 ) setpoint_vitesse = 1.0;
-                if ( cmd == 0x08 ) steering = -150;
-                if ( cmd == 0x5A ) steering = +150;
-                if ( cmd == 0x52 ) setpoint_vitesse = -1.0;
+            if ( mode == 1 || mode == 2) {
+                if ( mode == 1) {
+                    if ( cmd == 0x18 ) startForward = millis();
+                    if ( cmd == 0x08 ) startLeft = millis();
+                    if ( cmd == 0x5A ) startRight = millis();
+                    if ( cmd == 0x52 ) startBackward = millis();
+                }
+
+                //if ( cmd == 0x09 ) controlVitesse = constrain(controlVitesse + 10, 50, 255);
+                //if ( cmd == 0x15 ) controlVitesse = constrain(controlVitesse - 10, 50, 255);
             }
 
             if ( cmd == 0x45 ) mode = 3;
@@ -138,18 +128,27 @@ void remoteControl() {
     }
 }
 
-
 void lineTracking() {
+
 
     leftValue = digitalRead(LEFT_SENSOR_PIN);
     rightValue = digitalRead(RIGHT_SENSOR_PIN);
 
-    steering = 0;
-    setpoint_angle = EQUILIBRE + 0.25;
+    if ( leftValue == LOW && rightValue == LOW ) setpoint_angle = constrain(setpoint_angle + .0001, -2.5, -1.9);
+    else {  
+        setpoint_angle = -2.5;
+        if ( leftValue == HIGH) steering = -25;
+        else if (rightValue == HIGH ) steering = +25;
+    }
 
+}
 
-    if ( leftValue == HIGH) { steering = -100; setpoint_angle = EQUILIBRE - 1;}
-    else if (rightValue == HIGH ) { steering = +100; setpoint_angle = EQUILIBRE - 1;}
+void directionRemoteControl() {
+
+    if (millis() - startForward < 100) vitesse = +100;
+    else if (millis() - startBackward < 100) vitesse = -100;
+    else if (millis() - startLeft < 100) steering = -50;
+    else if (millis() - startRight < 100) steering = +50;
 
 }
 
