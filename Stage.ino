@@ -1,5 +1,6 @@
 #include "header.h"
 
+
 void setup() {
     Serial.begin(115200);
 
@@ -25,7 +26,8 @@ void setup() {
     pinMode(RED_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
     //pinMode(BLUE_PIN, OUTPUT);
-    LedMode(); // POUR SYNCHRRONISER LE MODE ET LA LED
+    changeMode();
+
 
 
     // Tracking Sensor Setup
@@ -47,15 +49,17 @@ void setup() {
     analogWrite(RIGHT_MOTOR_PIN2, LOW);
 }
 
+
 void loop() {
 
     
-    if ( mode == 3 ) {
-        driveMotors(0, 0, 0);
+    if ( !state ) {
+        driveMotors(0, 0);
     } else {
         balancing();
     }
 
+    changeMode(mode);
     remoteControl();
 }
 
@@ -69,27 +73,50 @@ void balancing() {
         pid_angle.Compute();
 
         steering = 0;
-        vitesse = 1;
+        setpoint_angle = EQUILIBRE;
                 
         Serial.print(input_angle); Serial.print(" =>"); Serial.println(output_angle);
         if (abs(input_angle - EQUILIBRE) > 40) {
-            driveMotors(0, 0, 0);
+            driveMotors(0, 0);
             return;
         }
-        
-        if (mode == 2) lineTracking();
-        else {
-            setpoint_angle = EQUILIBRE;
-            if (mode == 1) directionRemoteControl();
-        }
 
+        if (mode == 1) directionRemoteControl();
+        else if (mode == 2) lineTracking();
 
-
-        driveMotors(output_angle, vitesse, steering);
+        driveMotors(output_angle, steering);
 
     } else {
         input_angle = getPitchIMU();
     }
+}
+
+
+void lineTracking() {
+
+
+    leftValue = digitalRead(LEFT_SENSOR_PIN);
+    rightValue = digitalRead(RIGHT_SENSOR_PIN);
+
+    if ( leftValue == LOW && rightValue == LOW ) setpoint_angle = EQUILIBRE + 1;
+    else {
+        startBackward = millis();
+        if ( leftValue == HIGH) steering = +75;
+        else if (rightValue == HIGH ) steering = -75;
+    }
+
+    if (millis() - startBackward < 2000) setpoint_angle = EQUILIBRE;
+
+}
+
+
+void directionRemoteControl() {
+
+    if (millis() - startForward < 100) setpoint_angle = EQUILIBRE + 5;
+    else if (millis() - startBackward < 100) setpoint_angle = EQUILIBRE - 5;
+    else if (millis() - startLeft < 100) steering = +75;
+    else if (millis() - startRight < 100) steering = -75;
+
 }
 
 
@@ -98,57 +125,28 @@ void remoteControl() {
     if (IrReceiver.decode()) {
 
         cmd = IrReceiver.decodedIRData.command;
-        Serial.print(F("Nouvelle cmd = 0x")); Serial.println(cmd, HEX);
+
+        if ( mode == 1 ) {
+            if ( cmd == 0x18 ) startForward = millis();
+            if ( cmd == 0x08 ) startLeft = millis();
+            if ( cmd == 0x5A ) startRight = millis();
+            if ( cmd == 0x52 ) startBackward = millis();
+        }
 
         if ( ( (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) && (millis() - lastRemote > 200) ) || !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
 
-            if ( mode == 1 || mode == 2) {
-                if ( mode == 1) {
-                    if ( cmd == 0x18 ) startForward = millis();
-                    if ( cmd == 0x08 ) startLeft = millis();
-                    if ( cmd == 0x5A ) startRight = millis();
-                    if ( cmd == 0x52 ) startBackward = millis();
-                }
-
-                //if ( cmd == 0x09 ) controlVitesse = constrain(controlVitesse + 10, 50, 255);
-                //if ( cmd == 0x15 ) controlVitesse = constrain(controlVitesse - 10, 50, 255);
+            if ( !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) ) {
+                if ( cmd == 0x45 ) buttonInt();
+                else if ( cmd == 0x44 ) changeMode(1);
+                else if ( cmd == 0x19 ) changeMode(2);
+                else if ( cmd == 0x07 ) changeMode(0);
             }
+            
+            if ( cmd == 0x46 ) changeMode();
 
-            if ( cmd == 0x45 ) mode = 3;
-            else if ( cmd == 0x44 ) mode = 1;
-            else if ( cmd == 0x19 ) mode = 2;
-            else if ( cmd == 0x07 ) mode = 0;
-            else if ( cmd == 0x46 ) buttonInt();
-
-            LedMode();
             lastRemote = millis();
         }
 
         IrReceiver.resume();
     }
 }
-
-void lineTracking() {
-
-
-    leftValue = digitalRead(LEFT_SENSOR_PIN);
-    rightValue = digitalRead(RIGHT_SENSOR_PIN);
-
-    if ( leftValue == LOW && rightValue == LOW ) setpoint_angle = constrain(setpoint_angle + .0001, -2.5, -1.9);
-    else {  
-        setpoint_angle = -2.5;
-        if ( leftValue == HIGH) steering = -25;
-        else if (rightValue == HIGH ) steering = +25;
-    }
-
-}
-
-void directionRemoteControl() {
-
-    if (millis() - startForward < 100) vitesse = +100;
-    else if (millis() - startBackward < 100) vitesse = -100;
-    else if (millis() - startLeft < 100) steering = -50;
-    else if (millis() - startRight < 100) steering = +50;
-
-}
-

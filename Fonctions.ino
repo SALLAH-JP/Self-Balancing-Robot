@@ -3,14 +3,20 @@ void dmpDataReady() {
 }
 
 void buttonInt() {
-  mode += 1;
-  mode = mode % 3;
-
-  LedMode();
+  state = !state;
 }
 
+void changeMode( int newMode = -1 ) {
+  if (!state) {
+    // ETEINT
+    digitalWrite(RED_PIN, HIGH);
+    digitalWrite(GREEN_PIN, HIGH);
+    return;
+  }
 
-void LedMode() {  
+  if (newMode < 0) mode = (mode + 1) % 3;
+  else mode = newMode % 3;
+
   switch (mode) {
     case 0:
       // Mode Balancing : JAUNE
@@ -32,42 +38,36 @@ void LedMode() {
       digitalWrite(GREEN_PIN, HIGH);
       //digitalWrite(BLUE_PIN, HIGH);
       break;
-
-    case 3:
-      // Mode Off : ETEINT
-      digitalWrite(RED_PIN, HIGH);
-      digitalWrite(GREEN_PIN, HIGH);
-      //digitalWrite(BLUE_PIN, LOW);
-      break;
   }
+
 }
 
-void driveMotors(float torque, int speed, int turn) {
+void driveMotors(float torque, int turn) {
 
-  pwmL = torque - turn;
-  pwmR = torque + turn;
+  int pwmL = torque - turn;
+  int pwmR = torque + turn;
 
   pwmL = constrain(pwmL, -255, 255);
   pwmR = constrain(pwmR, -255, 255);
 
-  if (abs(pwmL) < 50) pwmL = 0;
-  if (abs(pwmR) < 50) pwmR = 0;
+  if (abs(pwmL) < 60) pwmL = 0;
+  if (abs(pwmR) < 60) pwmR = 0;
 
   // Gauche
   if (pwmL >= 0) {
-    analogWrite(LEFT_MOTOR_PIN1, (int)pwmL );
-    analogWrite(LEFT_MOTOR_PIN2, 0);
+    analogWrite(LEFT_MOTOR_PIN1,  0);
+    analogWrite(LEFT_MOTOR_PIN2, (int)pwmL);
   } else {
-    analogWrite(LEFT_MOTOR_PIN1, 0);
-    analogWrite(LEFT_MOTOR_PIN2, (int)(-pwmL));
+    analogWrite(LEFT_MOTOR_PIN1, (int)(-pwmL));
+    analogWrite(LEFT_MOTOR_PIN2, 0);
   }
   // Droite
   if (pwmR >= 0) {
-    analogWrite(RIGHT_MOTOR_PIN1, (int)pwmR);
-    analogWrite(RIGHT_MOTOR_PIN2, 0);
-  } else {
     analogWrite(RIGHT_MOTOR_PIN1, 0);
-    analogWrite(RIGHT_MOTOR_PIN2, (int)(-pwmR));
+    analogWrite(RIGHT_MOTOR_PIN2, (int)pwmR);
+  } else {
+    analogWrite(RIGHT_MOTOR_PIN1, (int)(-pwmR));
+    analogWrite(RIGHT_MOTOR_PIN2, 0);
   }
 }
 
