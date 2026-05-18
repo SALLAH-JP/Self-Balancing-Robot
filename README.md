@@ -22,6 +22,17 @@ Le robot dispose de **3 modes de fonctionnement** commutables via un bouton phys
 
 ---
 
+
+## 📺 Démonstration
+
+> 🎬 **[▶️ Cliquez ici pour voir le robot en action sur YouTube](https://youtu.be/-Sht4JGtuvM)**
+
+[![Self-Balancing Robot Demo](https://img.youtube.com/vi/-Sht4JGtuvM/maxresdefault.jpg)](https://youtu.be/-Sht4JGtuvM)
+
+*Démonstration des 3 modes : équilibre autonome, télécommande IR, et suivi de ligne.*
+
+---
+
 ## Modes de fonctionnement
 
 | Mode | LED | Description |
@@ -165,9 +176,21 @@ Self-Balancing-Robot/
 
 ---
 
-## Auteur
+## 📜 Licence
 
-**Jean-Paul SALLAH** — [github.com/SALLAH-JP](https://github.com/SALLAH-JP) · [LinkedIn](https://www.linkedin.com/in/jeanpaul-sallah/)
+Ce projet est distribué sous licence **MIT** — voir le fichier [`LICENSE`](LICENSE).
+
+
+---
+
+## 👤 Auteur
+
+**Jean-Paul SALLAH**
+Étudiant en 3ème année — Licence Informatique Appliquée
+🎓 Université des Mascareignes (Maurice)
+
+[![GitHub](https://img.shields.io/badge/GitHub-SALLAH--JP-181717?logo=github)](https://github.com/SALLAH-JP)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Jean--Paul%20SALLAH-0A66C2?logo=linkedin)](https://www.linkedin.com/in/jeanpaul-sallah/)
 
 <div align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=100&section=footer" width="100%"/>
